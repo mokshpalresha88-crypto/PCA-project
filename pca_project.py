@@ -2,36 +2,24 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 
-# -------------------------------
-# Load data
-# -------------------------------
+                    
 data = pd.read_csv("data/filtered.tsv.gz", sep="\t")
 data.columns = data.columns.str.strip()
 labels = pd.read_csv("data/class.tsv", sep="\t", header=None)
 
-# -------------------------------
-# Gene IDs (given / standard)
-# -------------------------------
+
 xbp1_id = "4404"
 gata3_id = "2625"
 
-# -------------------------------
-# Verify columns exist
-# -------------------------------
+
 if xbp1_id not in data.columns or gata3_id not in data.columns:
     print("Gene IDs not found in dataset")
     print("Available columns sample:", data.columns[:20])
     exit()
 
-# -------------------------------
-# Extract gene expression values
-# -------------------------------
 xbp1 = data[xbp1_id]
 gata3 = data[gata3_id]
 
-# -------------------------------
-# Plot Figure 1a (Scatter plot)
-# -------------------------------
 plt.figure()
 
 for i in range(len(labels)):
@@ -46,9 +34,6 @@ plt.title("Gene Expression Scatter Plot (Figure 1a)")
 plt.legend()
 plt.show()
 
-# -------------------------------
-# PCA (Figure 1c)
-# -------------------------------
 pca = PCA(n_components=1)
 X_pca = pca.fit_transform(data)
 
