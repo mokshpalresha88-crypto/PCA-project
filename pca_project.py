@@ -1,51 +1,104 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
-
-                    
-data = pd.read_csv("data/filtered.tsv.gz", sep="\t")
-data.columns = data.columns.str.strip()
-labels = pd.read_csv("data/class.tsv", sep="\t", header=None)
+import numpy as np
 
 
-xbp1_id = "4404"
-gata3_id = "2625"
+# LOAD DATA
+
+df = pd.read_csv("../data/filtered.tsv.gz",
+                 sep="\t",
+                 compression="gzip")
 
 
-if xbp1_id not in data.columns or gata3_id not in data.columns:
-    print("Gene IDs not found in dataset")
-    print("Available columns sample:", data.columns[:20])
-    exit()
 
-xbp1 = data[xbp1_id]
-gata3 = data[gata3_id]
 
-plt.figure()
+df = df.iloc[:, [4359, 4404]]
 
-for i in range(len(labels)):
-    if labels.iloc[i, 0] == 1:
-        plt.scatter(gata3[i], xbp1[i], color='red', label='ER+' if i == 0 else "")
-    else:
-        plt.scatter(gata3[i], xbp1[i], color='blue', label='ER-' if i == 0 else "")
+df.columns = ["GATA3", "XBP1"]
+
+# labels
+labels = pd.read_csv("../data/class.tsv",
+                     header=None,
+                     names=["result"])
+
+df["result"] = labels["result"]
+
+
+# PLOT 1 GATA3 vs XBP1
+
+
+plt.figure(figsize=(6,6))
+
+er_pos = df[df["result"] == 1]
+er_neg = df[df["result"] == 0]
+
+plt.scatter(er_pos["GATA3"],
+            er_pos["XBP1"],
+            c="green",
+            label="ER+")
+
+plt.scatter(er_neg["GATA3"],
+            er_neg["XBP1"],
+            c="red",
+            label="ER-")
 
 plt.xlabel("GATA3 Expression")
 plt.ylabel("XBP1 Expression")
-plt.title("Gene Expression Scatter Plot (Figure 1a)")
+
+plt.title("GATA3 vs XBP1")
+
 plt.legend()
+plt.tight_layout()
 plt.show()
 
-pca = PCA(n_components=1)
-X_pca = pca.fit_transform(data)
 
-plt.figure()
+# PCA
 
-for i in range(len(labels)):
-    if labels.iloc[i, 0] == 1:
-        plt.scatter(X_pca[i], 0, color='red')
-    else:
-        plt.scatter(X_pca[i], 0, color='blue')
 
-plt.title("PCA Projection on PC1 (Figure 1c)")
-plt.xlabel("PC1")
+mat = df[["GATA3", "XBP1"]].values
+
+# center data
+mat_centered = mat - mat.mean(axis=0)
+
+# covariance matrix
+cov = np.cov(mat_centered, rowvar=False)
+
+# eigendecomposition
+eigenvalues, eigenvectors = np.linalg.eig(cov)
+
+# sort by descending eigenvalue
+sort = np.argsort(eigenvalues)[::-1]
+
+eigenvalues = eigenvalues[sort]
+eigenvectors = eigenvectors[:, sort]
+
+
+pc1 = eigenvectors[:, 0]
+
+# projection onto PC1
+pc1_scores = mat_centered @pc1
+
+
+pc1_er_pos = pc1_scores[df["result"] == 1]
+pc1_er_neg = pc1_scores[df["result"] == 0]
+
+plt.figure(figsize=(8,3))
+
+plt.scatter(pc1_er_pos,
+            np.zeros_like(pc1_er_pos),
+            c="green",
+            label="ER+")
+
+plt.scatter(pc1_er_neg,
+            np.zeros_like(pc1_er_neg),
+            c="red",
+            label="ER-")
+
+plt.xlabel("Projection onto PC1")
 plt.yticks([])
+
+plt.title("Projection of Samples onto PC1")
+
+plt.legend()
+plt.tight_layout()
 plt.show()
